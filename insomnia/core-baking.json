@@ -1,0 +1,68 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-10-28T00:00:00.000Z",
+  "__export_source": "core-baking",
+  "resources": [
+    {
+      "_id": "wrk_core_baking",
+      "_type": "workspace",
+      "name": "Core Baking",
+      "description": ""
+    },
+    {
+      "_id": "req_create_account",
+      "_type": "request",
+      "parentId": "wrk_core_baking",
+      "modified": 1793145600,
+      "created": 1793145600,
+      "url": "http://localhost:8080/api/v1/accounts",
+      "name": "Criar conta",
+      "description": "",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Conta principal\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1793145600,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_get_account_balance",
+      "_type": "request",
+      "parentId": "wrk_core_baking",
+      "modified": 1793145600,
+      "created": 1793145600,
+      "url": "http://localhost:8080/api/v1/accounts/1",
+      "name": "Consultar saldo da conta",
+      "description": "Consulta a conta com ID 1.",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1793145599,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    }
+  ]
+}

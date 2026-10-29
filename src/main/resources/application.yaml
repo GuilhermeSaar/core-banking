@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: core-baking
+  jpa:
+    hibernate:
+      ddl-auto: update

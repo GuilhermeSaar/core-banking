@@ -63,6 +63,254 @@
       "settingEncodeUrl": true,
       "settingRebuildPath": true,
       "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_deposit_account",
+      "_type": "request",
+      "parentId": "wrk_core_baking",
+      "modified": 1793145600,
+      "created": 1793145600,
+      "url": "http://localhost:8080/api/v1/accounts/00000000-0000-0000-0000-000000000000/deposits",
+      "name": "Depositar na conta",
+      "description": "Substitua o UUID de exemplo pelo ID retornado ao criar a conta.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"amount\": 100.00\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1793145598,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_deposit_missing_account",
+      "_type": "request",
+      "parentId": "wrk_core_baking",
+      "modified": 1793145600,
+      "created": 1793145600,
+      "url": "http://localhost:8080/api/v1/accounts/11111111-1111-1111-1111-111111111111/deposits",
+      "name": "Depósito — conta inexistente",
+      "description": "Use um UUID válido que não esteja cadastrado no banco.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"amount\": 100.00\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1793145597,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_deposit_negative_amount",
+      "_type": "request",
+      "parentId": "wrk_core_baking",
+      "modified": 1793145600,
+      "created": 1793145600,
+      "url": "http://localhost:8080/api/v1/accounts/00000000-0000-0000-0000-000000000000/deposits",
+      "name": "Depósito — valor negativo",
+      "description": "Troque o UUID pelo de uma conta existente antes de enviar.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"amount\": -10.00\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1793145596,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_deposit_zero_amount",
+      "_type": "request",
+      "parentId": "wrk_core_baking",
+      "modified": 1793145600,
+      "created": 1793145600,
+      "url": "http://localhost:8080/api/v1/accounts/00000000-0000-0000-0000-000000000000/deposits",
+      "name": "Depósito — valor zero",
+      "description": "Troque o UUID pelo de uma conta existente antes de enviar.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"amount\": 0.00\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1793145595,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_deposit_missing_amount",
+      "_type": "request",
+      "parentId": "wrk_core_baking",
+      "modified": 1793145600,
+      "created": 1793145600,
+      "url": "http://localhost:8080/api/v1/accounts/00000000-0000-0000-0000-000000000000/deposits",
+      "name": "Depósito — sem amount",
+      "description": "Troque o UUID pelo de uma conta existente antes de enviar.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1793145594,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_deposit_null_amount",
+      "_type": "request",
+      "parentId": "wrk_core_baking",
+      "modified": 1793145600,
+      "created": 1793145600,
+      "url": "http://localhost:8080/api/v1/accounts/00000000-0000-0000-0000-000000000000/deposits",
+      "name": "Depósito — amount nulo",
+      "description": "Troque o UUID pelo de uma conta existente antes de enviar.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"amount\": null\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1793145593,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_deposit_invalid_amount_type",
+      "_type": "request",
+      "parentId": "wrk_core_baking",
+      "modified": 1793145600,
+      "created": 1793145600,
+      "url": "http://localhost:8080/api/v1/accounts/00000000-0000-0000-0000-000000000000/deposits",
+      "name": "Depósito — amount como texto",
+      "description": "Troque o UUID pelo de uma conta existente antes de enviar.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"amount\": \"abc\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1793145592,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_deposit_invalid_account_id",
+      "_type": "request",
+      "parentId": "wrk_core_baking",
+      "modified": 1793145600,
+      "created": 1793145600,
+      "url": "http://localhost:8080/api/v1/accounts/not-a-uuid/deposits",
+      "name": "Depósito — UUID inválido",
+      "description": "Envia um valor de id que não tem o formato UUID.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"amount\": 100.00\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1793145591,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
     }
   ]
 }

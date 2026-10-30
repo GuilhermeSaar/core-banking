@@ -22,6 +22,7 @@ import java.util.UUID;
 public class Account {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(unique = true)
@@ -37,6 +38,10 @@ public class Account {
     @OneToMany(mappedBy = "account")
     private List<Ledger> ledgers = new ArrayList<>();
 
+    public boolean isBlocked() {
+        return status == StatusAccount.BLOCKED;
+    }
+
     @PrePersist
     public void prePersist(){
         this.createdAt = LocalDateTime.now();
@@ -44,8 +49,7 @@ public class Account {
         if (this.status == null) this.status = StatusAccount.ACTIVE;
     }
 
-    public Account(UUID id, String name) {
-        this.id = id;
+    public Account(String name) {
         this.name = name;
     }
 }

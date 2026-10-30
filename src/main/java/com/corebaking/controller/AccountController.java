@@ -1,12 +1,12 @@
 package com.corebaking.controller;
 
-import com.corebaking.dto.AccountBalance;
-import com.corebaking.dto.AccountRequest;
-import com.corebaking.dto.AccountResponse;
+import com.corebaking.dto.*;
 import com.corebaking.service.AccountService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -23,9 +23,18 @@ public class AccountController {
     }
 
     @GetMapping("/accounts/{id}")
-    public ResponseEntity<AccountBalance> findBalance(@PathVariable Long id){
+    public ResponseEntity<AccountBalance> findBalance(@PathVariable UUID id){
 
         var balance = service.getBalance(id);
         return ResponseEntity.ok().body(balance);
+    }
+
+    @PostMapping("/accounts/{id}/deposits")
+    public ResponseEntity<DepositResponse> deposits(
+            @RequestHeader(value = "Idempotency-Key", required = false) UUID key,
+            @PathVariable UUID id, @RequestBody DepositRequest amount){
+
+        var deposit = service.deposit(id, amount.amount());
+        return ResponseEntity.ok().body(deposit);
     }
 }

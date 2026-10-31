@@ -8,6 +8,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -37,7 +38,7 @@ public class Ledger {
     private BigDecimal amount;
 
     @Column(nullable = false)
-    private LocalDate createdAt;
+    private LocalDateTime createdAt;
 
     public Ledger(Account acc, Transfer transfer, EntryType entryType, BigDecimal amount) {
         this.account = acc;
@@ -48,7 +49,6 @@ public class Ledger {
 
     @PrePersist
     public void prePersist() {
-        this.createdAt = LocalDate.now();
+        this.createdAt = LocalDateTime.now();
     }
-
 }

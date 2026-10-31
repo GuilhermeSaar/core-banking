@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -125,7 +126,6 @@ public class AccountService {
         );
     }
 
-
     //RF04 — Realizar saque
     //• O sistema deve permitir retirar fundos de uma conta ativa.
     //• O valor deve ser positivo.
@@ -199,7 +199,7 @@ public class AccountService {
 
         if (idempotencyKey == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Key cannot be null");
 
-        var currentHash = GenerateHash.hash(request.sourceAccountId(), request.amount());
+        var currentHash = GenerateHash.hash(request.sourceAccountId(), request.destinationAccountId(), request.amount());
 
         var accSource = accRepository.findByIdWithLock(request.sourceAccountId()).orElseThrow(
                 () -> new ResourceNotFoundException("account not found")
@@ -266,9 +266,21 @@ public class AccountService {
         );
     }
 
+    //RF06 — Consultar extrato
+    //• O sistema deve permitir consultar os lançamentos financeiros de uma conta, incluindo tipo, valor,
+    //data, identificação da operação e natureza do lançamento.
+    @Transactional(readOnly = true)
+    public List<LedgerDTO> getLedgers(UUID id) {
 
+        var acc = accRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("account not found")
+        );
 
+        var ledgers = ledgerRepository.findAllByAccount(acc);
 
+        return ledgers.stream()
+                .map(LedgerDTO::new).toList();
+    }
 
 
 

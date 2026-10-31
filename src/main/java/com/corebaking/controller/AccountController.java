@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -27,6 +28,13 @@ public class AccountController {
 
         var balance = service.getBalance(id);
         return ResponseEntity.ok().body(balance);
+    }
+
+    @GetMapping("/accounts/{id}/ledger")
+    public ResponseEntity<List<LedgerDTO>> findLedgers(@PathVariable UUID id){
+
+        var  ledgers = service.getLedgers(id);
+        return ResponseEntity.ok().body(ledgers);
     }
 
     @PostMapping("/accounts/{id}/deposits")

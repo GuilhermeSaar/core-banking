@@ -30,11 +30,24 @@ public class AccountController {
     }
 
     @PostMapping("/accounts/{id}/deposits")
-    public ResponseEntity<DepositResponse> deposits(
+    public ResponseEntity<TransactionResponse> deposits(
             @RequestHeader(value = "Idempotency-Key", required = false) UUID key,
-            @PathVariable UUID id, @RequestBody DepositRequest amount){
+            @PathVariable UUID id, @RequestBody TransactionRequest amount){
 
-        var deposit = service.deposit(id, amount.amount());
+        System.out.print("Idempotency-Key: " + key + "\n");
+
+        var deposit = service.deposit(id, amount.amount(), key);
+        return ResponseEntity.ok().body(deposit);
+    }
+
+    @PostMapping("/accounts/{id}/withdraw")
+    public ResponseEntity<TransactionResponse> withdrawals(
+            @RequestHeader(value = "Idempotency-Key", required = false) UUID key,
+            @PathVariable UUID id, @RequestBody TransactionRequest amount){
+
+        System.out.print("Idempotency-Key: " + key + "\n");
+
+        var deposit = service.withdraw(id, amount.amount(), key);
         return ResponseEntity.ok().body(deposit);
     }
 }

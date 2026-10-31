@@ -17,14 +17,30 @@ import java.util.UUID;
 public class Idempotency {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @Column(unique = true)
     private UUID idempotencyKey;
+
     private String requestHash;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false, name = "transfer_id")
+    private Transfer transfer;
+
     @Enumerated(EnumType.STRING)
     private IdempotencyStatus status;
+
     @Column(nullable = false)
     private LocalDateTime responseData;
+
+    public Idempotency(UUID idempotencyKey, String currentHash, IdempotencyStatus idempotencyStatus, Transfer transfer) {
+        this.idempotencyKey = idempotencyKey;
+        this.requestHash = currentHash;
+        this.status = idempotencyStatus;
+        this.transfer = transfer;
+    }
 
     @PrePersist
     public void prePersist() {

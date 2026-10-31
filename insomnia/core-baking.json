@@ -311,6 +311,41 @@
       "settingEncodeUrl": true,
       "settingRebuildPath": true,
       "settingFollowRedirects": "global"
+    },
+    {
+      "_id": "req_withdraw_account",
+      "_type": "request",
+      "parentId": "wrk_core_baking",
+      "modified": 1793145600,
+      "created": 1793145600,
+      "url": "http://localhost:8080/api/v1/accounts/00000000-0000-0000-0000-000000000000/withdraw",
+      "name": "Sacar da conta",
+      "description": "Substitua o UUID pelo de uma conta existente com saldo suficiente. Use uma Idempotency-Key nova para cada saque; reutilize a mesma chave apenas ao repetir a mesma operação.",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"amount\": 10.00\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "00000000-0000-4000-8000-000000000001"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1793145590,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
     }
   ]
 }

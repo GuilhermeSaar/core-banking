@@ -15,7 +15,8 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
     boolean existsByName(String name);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query(value = "SELECT * FROM accounts " +
-                   "WHERE id = :id FOR UPDATE", nativeQuery = true)
+    @Query("""
+        SELECT a FROM Account a WHERE a.id = :id
+    """)
     Optional<Account> findByIdWithLock(@Param("id") UUID id);
 }

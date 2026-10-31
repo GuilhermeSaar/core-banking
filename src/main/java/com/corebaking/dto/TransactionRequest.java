@@ -2,7 +2,7 @@ package com.corebaking.dto;
 
 import java.math.BigDecimal;
 
-public record DepositRequest(
+public record TransactionRequest(
         BigDecimal amount
 ) {
 }

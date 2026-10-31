@@ -7,7 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public record DepositResponse(
+public record TransactionResponse(
 
         UUID transactionId,
         UUID accountId,

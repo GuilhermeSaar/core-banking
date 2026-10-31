@@ -1,0 +1,69 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-10-30T12:00:00.000Z",
+  "__export_source": "insomnia.desktop.app",
+  "resources": [
+    {
+      "_id": "wrk_core_baking_withdraw",
+      "_type": "workspace",
+      "name": "Core Baking - Saques",
+      "description": "Requisições para POST /api/v1/accounts/{id}/withdraw",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_core_baking_withdraw",
+      "_type": "environment",
+      "parentId": "wrk_core_baking_withdraw",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:8080/api/v1",
+        "account_id": "UUID_DA_CONTA",
+        "idempotency_key": "00000000-0000-4000-8000-000000000001"
+      },
+      "dataPropertyOrder": {
+        "id": [
+          "base_url",
+          "account_id",
+          "idempotency_key"
+        ]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1
+    },
+    {
+      "_id": "req_core_baking_withdraw",
+      "_type": "request",
+      "parentId": "wrk_core_baking_withdraw",
+      "name": "Realizar saque",
+      "description": "Informe o UUID da conta e um valor positivo disponível. Use uma Idempotency-Key nova para cada saque; reutilize a mesma chave apenas ao repetir a mesma operação.",
+      "method": "POST",
+      "url": "{{ _.base_url }}/accounts/{{ _.account_id }}/withdraw",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"amount\": 10.00\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Idempotency-Key",
+          "value": "{{ _.idempotency_key }}"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": 1,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": false,
+      "settingFollowRedirects": "global"
+    }
+  ]
+}

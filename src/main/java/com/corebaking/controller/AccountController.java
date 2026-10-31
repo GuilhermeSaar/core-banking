@@ -50,4 +50,15 @@ public class AccountController {
         var deposit = service.withdraw(id, amount.amount(), key);
         return ResponseEntity.ok().body(deposit);
     }
+
+    @PostMapping("/transfer")
+    public ResponseEntity<TransferResponse> transfer(
+            @RequestHeader(value = "Idempotency-Key", required = false) UUID key,
+            @RequestBody TransferRequest request){
+
+        System.out.print("Idempotency-Key: " + key + "\n");
+
+        var transfer = service.transfer(request, key);
+        return ResponseEntity.ok().body(transfer);
+    }
 }

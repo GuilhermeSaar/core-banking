@@ -52,6 +52,12 @@ public class Transfer {
         this.status = status;
     }
 
+    public Transfer(Account accSource, Account accDest, BigDecimal amount, TransferStatus transferStatus) {
+        this.sourceAccount = accSource;
+        this.destinationAccount = accDest;
+        this.amount = amount;
+        this.status = transferStatus;
+    }
 
     @PrePersist
     public void prePersist() {

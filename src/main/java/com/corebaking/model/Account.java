@@ -52,4 +52,23 @@ public class Account {
     public Account(String name) {
         this.name = name;
     }
+
+    @Override
+    public boolean equals(Object o) {
+
+        if (this == o) return true;
+
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Account account = (Account) o;
+
+        if (id == null || account.id == null) return false;
+
+        return id.equals(account.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

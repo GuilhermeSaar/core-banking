@@ -1,9 +1,7 @@
 package com.corebaking.service;
 
-import com.corebaking.dto.AccountBalance;
-import com.corebaking.dto.AccountRequest;
-import com.corebaking.dto.AccountResponse;
-import com.corebaking.dto.TransactionResponse;
+import com.corebaking.dto.*;
+import com.corebaking.exception.InsufficientBalanceException;
 import com.corebaking.exception.ResourceNotFoundException;
 import com.corebaking.model.Account;
 import com.corebaking.model.Idempotency;
@@ -188,11 +186,85 @@ public class AccountService {
         );
     }
 
+    //RF05 — Realizar transferência
+    //• O sistema deve permitir transferir dinheiro entre duas contas.
+    //• A conta de origem e a conta de destino devem existir e estar ativas.
+    //• As contas devem ser diferentes.
+    //• O valor deve ser positivo.
+    //• A conta de origem deve possuir saldo suficiente.
+    //• O débito e o crédito devem ser concluídos juntos ou revertidos juntos.
+    //• Cada transferência deve possuir um identificador único.
+    @Transactional
+    public TransferResponse transfer(TransferRequest request, UUID idempotencyKey) {
 
+        if (idempotencyKey == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Key cannot be null");
 
+        var currentHash = GenerateHash.hash(request.sourceAccountId(), request.amount());
 
+        var accSource = accRepository.findByIdWithLock(request.sourceAccountId()).orElseThrow(
+                () -> new ResourceNotFoundException("account not found")
+        );
+        var accDest = accRepository.findByIdWithLock(request.destinationAccountId()).orElseThrow(
+                () -> new ResourceNotFoundException("account not found")
+        );
 
+        if (accSource.isBlocked() || accDest.isBlocked()) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Transfer is blocked");
 
+        if (accSource.equals(accDest)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "It is not possible to complete the transaction");
+        }
+
+        var idempOpt = idempotencyRepository.findByIdempotencyKey(idempotencyKey);
+
+        if (idempOpt.isPresent()) {
+            var idempotency = idempOpt.get();
+
+            if  (!idempotency.getRequestHash().equals(currentHash)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Incompatible hashes");
+            }
+
+            var transfer = idempotency.getTransfer();
+            var transferId = transfer.getId();
+
+            return new TransferResponse(transferId, transfer.getStatus(),
+                    transfer.getAmount(), accSource.getId(), accDest.getId());
+        }
+
+        var monetaryAmount = new MonetaryAmount(request.amount());
+        var transactionAmount = monetaryAmount.amount();
+
+        if (accSource.getBalance().compareTo(monetaryAmount.amount()) < 0) {
+            throw new InsufficientBalanceException("Insufficient balance");
+        }
+
+        var balanceSource = accSource.getBalance().subtract(transactionAmount);
+        accSource.setBalance(balanceSource);
+
+        var balanceDest = accDest.getBalance().add(transactionAmount);
+        accDest.setBalance(balanceDest);
+
+        var status = TransferStatus.COMPLETED;
+
+        var transfer =  transferRepository.save(new Transfer(
+                accSource, accDest, transactionAmount,
+                status
+        ));
+
+        ledgerRepository.save(new Ledger(
+             accSource, transfer, EntryType.TRANSFER, transactionAmount
+        ));
+
+        idempotencyRepository.save(new Idempotency(
+                idempotencyKey, currentHash, IdempotencyStatus.SUCCESS, transfer
+        ));
+
+        return new TransferResponse(
+                transfer.getId(), status,
+                transactionAmount,
+                accSource.getId(),
+                accDest.getId()
+        );
+    }
 
 
 

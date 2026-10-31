@@ -1,13 +1,14 @@
 package com.corebaking.service;
 
-import com.corebaking.dto.TransferRequest;
-import com.corebaking.exception.InsufficientBalanceException;
-import com.corebaking.model.Account;
-import com.corebaking.model.enums.StatusAccount;
-import com.corebaking.repository.AccountRepository;
-import com.corebaking.repository.IdempotencyRepository;
-import com.corebaking.repository.LedgerRepository;
-import com.corebaking.repository.TransferRepository;
+import com.corebaking.account.model.Account;
+import com.corebaking.account.model.StatusAccount;
+import com.corebaking.account.repository.AccountRepository;
+import com.corebaking.idempotency.repository.IdempotencyRepository;
+import com.corebaking.ledger.repository.LedgerRepository;
+import com.corebaking.shared.exception.InsufficientBalanceException;
+import com.corebaking.transfers.dto.TransferRequest;
+import com.corebaking.transfers.repository.TransferRepository;
+import com.corebaking.transfers.service.TransferService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,16 +21,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
 @Testcontainers
@@ -50,7 +44,7 @@ public class TransferServiceIntegrationTest {
     private AccountRepository accountRepository;
 
     @Autowired
-    private AccountService acc;
+    private TransferService transferService;
 
     @Autowired
     private TransferRepository transferRepository;
@@ -89,7 +83,7 @@ public class TransferServiceIntegrationTest {
         var request = new TransferRequest(sourceAccount.getId(), destAccount.getId(), new BigDecimal("200.00"));
         var idempotencyKey = UUID.randomUUID();
 
-        var response = acc.transfer(request, idempotencyKey);
+        var response = transferService.transfer(request, idempotencyKey);
 
         assertNotNull(response);
         assertNotNull(response.transferId());
@@ -143,7 +137,7 @@ public class TransferServiceIntegrationTest {
         ready.countDown();
         start.await();
         try {
-            acc.transfer(new TransferRequest(sourceId, destinationId, new BigDecimal("100.00")), UUID.randomUUID());
+            transferService.transfer(new TransferRequest(sourceId, destinationId, new BigDecimal("100.00")), UUID.randomUUID());
             return true;
         } catch (InsufficientBalanceException e) {
             return false;

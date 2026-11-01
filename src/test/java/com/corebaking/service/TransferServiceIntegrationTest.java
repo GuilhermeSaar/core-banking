@@ -1,5 +1,6 @@
 package com.corebaking.service;
 
+import com.jayway.jsonpath.JsonPath;
 import com.corebaking.account.model.Account;
 import com.corebaking.account.model.StatusAccount;
 import com.corebaking.account.repository.AccountRepository;
@@ -212,6 +213,27 @@ public class TransferServiceIntegrationTest {
             assertEquals(1, jdbcTemplate.queryForObject(
                     "SELECT count(*) FROM " + table + " WHERE id = ? AND amount = 10", Integer.class, id));
         }
+    }
+
+    @Test
+    void shouldExposeOpenApiDocumentation() {
+        ResponseEntity<String> response = restTemplate.getForEntity("/v3/api-docs", String.class);
+        assertEquals(200, response.getStatusCode().value());
+        String document = response.getBody();
+        assertEquals("Core Banking API", JsonPath.read(document, "$.info.title"));
+        for (String path : List.of("/api/v1/accounts", "/api/v1/accounts/{id}",
+                "/api/v1/transaction/{id}/deposits", "/api/v1/transaction/{id}/withdraw",
+                "/api/v1/transfer", "/api/v1/{id}/ledger")) {
+            assertTrue(((java.util.Map<?, ?>) JsonPath.read(document, "$.paths")).containsKey(path));
+        }
+        for (String path : List.of("/api/v1/transaction/{id}/deposits",
+                "/api/v1/transaction/{id}/withdraw", "/api/v1/transfer")) {
+            List<java.util.Map<String, Object>> parameters = JsonPath.read(document,
+                    "$.paths['" + path + "'].post.parameters");
+            assertTrue(parameters.stream().anyMatch(parameter -> "Idempotency-Key".equals(parameter.get("name"))
+                    && Boolean.TRUE.equals(parameter.get("required"))));
+        }
+        assertEquals(200, restTemplate.getForEntity("/swagger-ui/index.html", String.class).getStatusCode().value());
     }
 
     private ResponseEntity<String> sendTransfer(TransferRequest request, UUID key) {

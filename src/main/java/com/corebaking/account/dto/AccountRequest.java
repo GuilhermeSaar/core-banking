@@ -1,4 +1,5 @@
 package com.corebaking.account.dto;
 
-public record AccountRequest(String name) {
+import io.swagger.v3.oas.annotations.media.Schema;
+public record AccountRequest(@Schema(description = "Nome da conta", example = "Conta Exemplo") String name) {
 }

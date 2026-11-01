@@ -43,7 +43,6 @@ public class Transfer {
     @OneToMany(mappedBy = "transfer", cascade = CascadeType.ALL)
     private List<Ledger> entries = new ArrayList<>();
 
-
     @Column(nullable = false)
     private LocalDateTime createdAt;
 

@@ -1,6 +1,7 @@
 package com.corebaking.transaction.service;
 
 import com.corebaking.account.repository.AccountRepository;
+import com.corebaking.ledger.model.EntryNature;
 import com.corebaking.transaction.dto.TransactionResponse;
 import com.corebaking.ledger.model.EntryType;
 import com.corebaking.ledger.model.Ledger;
@@ -65,7 +66,6 @@ public class TransactionService {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Incompatible hashes");
             }
 
-
             var transfer = idempotency.getTransfer();
             var transferId = transfer.getId();
             var ledger = ledgerRepository.findByTransferId(transferId);
@@ -88,7 +88,7 @@ public class TransactionService {
         idempotencyRepository.save(new Idempotency(idempotencyKey,
                 currentHash, IdempotencyStatus.SUCCESS, transfer));
 
-        ledgerRepository.save(new Ledger(acc, transfer, entryType, monetaryAmount.amount()));
+        ledgerRepository.save(new Ledger(acc, transfer, entryType, monetaryAmount.amount(), EntryNature.CREDIT));
 
         return new TransactionResponse(
                 transfer.getId(), acc.getId(), entryType,
@@ -148,7 +148,7 @@ public class TransactionService {
         idempotencyRepository.save(new Idempotency(idempotencyKey,
                 currentHash, IdempotencyStatus.SUCCESS, transfer));
 
-        ledgerRepository.save(new Ledger(acc, transfer, entryType, monetaryAmount.amount()));
+        ledgerRepository.save(new Ledger(acc, transfer, entryType, monetaryAmount.amount(), EntryNature.DEBIT));
 
         return new TransactionResponse(
                 transfer.getId(), acc.getId(), entryType,

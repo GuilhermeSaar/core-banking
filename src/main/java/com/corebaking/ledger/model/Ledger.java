@@ -33,17 +33,21 @@ public class Ledger {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private EntryType entryType;
+
+    private EntryNature nature;
+
     @Column(nullable = false, updatable = false)
     private BigDecimal amount;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    public Ledger(Account acc, Transfer transfer, EntryType entryType, BigDecimal amount) {
+    public Ledger(Account acc, Transfer transfer, EntryType entryType, BigDecimal amount, EntryNature nature) {
         this.account = acc;
         this.transfer = transfer;
         this.entryType = entryType;
         this.amount = amount;
+        this.nature = nature;
     }
 
     @PrePersist

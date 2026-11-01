@@ -3,8 +3,6 @@ package com.corebaking.service;
 import com.corebaking.account.model.Account;
 import com.corebaking.account.model.StatusAccount;
 import com.corebaking.account.repository.AccountRepository;
-import com.corebaking.idempotency.repository.IdempotencyRepository;
-import com.corebaking.ledger.repository.LedgerRepository;
 import com.corebaking.transfers.dto.TransferRequest;
 import com.corebaking.transfers.repository.TransferRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -30,6 +30,7 @@ import java.util.concurrent.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureTestRestTemplate
@@ -44,7 +45,6 @@ public class TransferServiceIntegrationTest {
         registry.add("spring.datasource.url", postgreSQLContainer::getJdbcUrl);
         registry.add("spring.datasource.username", postgreSQLContainer::getUsername);
         registry.add("spring.datasource.password", postgreSQLContainer::getPassword);
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
     }
 
     @Autowired
@@ -57,10 +57,7 @@ public class TransferServiceIntegrationTest {
     private TransferRepository transferRepository;
 
     @Autowired
-    private LedgerRepository ledgerRepository;
-
-    @Autowired
-    private IdempotencyRepository idempotencyRepository;
+    private JdbcTemplate jdbcTemplate;
 
     private Account accountA;
     private Account accountB;
@@ -68,11 +65,8 @@ public class TransferServiceIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // clean tables
-        idempotencyRepository.deleteAll();
-        ledgerRepository.deleteAll();
-        transferRepository.deleteAll();
-        accountRepository.deleteAll();
+        // The test database is disposable; row-level protections forbid DELETE.
+        jdbcTemplate.execute("TRUNCATE idempotency_records, ledger_entries, transfers, accounts");
 
         accountA = new Account("Account A");
         accountA.setStatus(StatusAccount.ACTIVE);
@@ -191,6 +185,32 @@ public class TransferServiceIntegrationTest {
         } finally {
             start.countDown();
             executor.shutdown();
+        }
+    }
+
+    @Test
+    void shouldProtectFinancialHistoryFromUpdatesAndDeletes() {
+        UUID transferId = UUID.randomUUID();
+        UUID ledgerId = UUID.randomUUID();
+        jdbcTemplate.update("""
+                INSERT INTO transfers (id, source_account_id, amount, status, created_at)
+                VALUES (?, ?, 10.00, 'COMPLETED', CURRENT_TIMESTAMP)
+                """, transferId, accountA.getId());
+        jdbcTemplate.update("""
+                INSERT INTO ledger_entries (id, account_id, transfer_id, entry_type, amount, created_at)
+                VALUES (?, ?, ?, 'TRANSFER_SENT', 10.00, CURRENT_TIMESTAMP)
+                """, ledgerId, accountA.getId(), transferId);
+
+        for (String table : List.of("ledger_entries", "transfers")) {
+            UUID id = table.equals("ledger_entries") ? ledgerId : transferId;
+            for (String operation : List.of("UPDATE " + table + " SET amount = 20 WHERE id = ?",
+                    "DELETE FROM " + table + " WHERE id = ?")) {
+                DataAccessException error = assertThrows(DataAccessException.class,
+                        () -> jdbcTemplate.update(operation, id));
+                assertTrue(error.getMostSpecificCause().getMessage().contains("histórico financeiro (" + table + ")"));
+            }
+            assertEquals(1, jdbcTemplate.queryForObject(
+                    "SELECT count(*) FROM " + table + " WHERE id = ? AND amount = 10", Integer.class, id));
         }
     }
 

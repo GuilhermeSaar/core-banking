@@ -1,5 +1,6 @@
 package com.corebaking.transfers.service;
 
+import com.corebaking.ledger.model.EntryNature;
 import com.corebaking.transfers.dto.TransferRequest;
 import com.corebaking.transfers.dto.TransferResponse;
 import com.corebaking.shared.exception.InsufficientBalanceException;
@@ -98,7 +99,11 @@ public class TransferService {
         ));
 
         ledgerRepository.save(new Ledger(
-                accSource, transfer, EntryType.TRANSFER, transactionAmount
+                accSource, transfer, EntryType.TRANSFER_SENT, transactionAmount, EntryNature.DEBIT
+        ));
+
+        ledgerRepository.save(new Ledger(
+                accDest, transfer,  EntryType.TRANSFERENCIA_RECEIVED, transactionAmount, EntryNature.CREDIT
         ));
 
         idempotencyRepository.save(new Idempotency(

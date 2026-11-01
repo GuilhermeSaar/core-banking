@@ -1,6 +1,6 @@
 package com.corebaking.ledger.controller;
 
-import com.corebaking.ledger.dto.LedgerDTO;
+import com.corebaking.ledger.dto.LedgerResponse;
 import com.corebaking.ledger.service.LedgerService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +20,7 @@ public class LedgerController {
     private final LedgerService service;
 
     @GetMapping("/{id}/ledger")
-    public ResponseEntity<List<LedgerDTO>> findLedgers(@PathVariable UUID id){
+    public ResponseEntity<List<LedgerResponse>> findLedgers(@PathVariable UUID id){
 
         var  ledgers = service.getLedgers(id);
         return ResponseEntity.ok().body(ledgers);

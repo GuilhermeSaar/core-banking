@@ -5,14 +5,18 @@ import com.corebaking.account.model.StatusAccount;
 import com.corebaking.account.repository.AccountRepository;
 import com.corebaking.idempotency.repository.IdempotencyRepository;
 import com.corebaking.ledger.repository.LedgerRepository;
-import com.corebaking.shared.exception.InsufficientBalanceException;
 import com.corebaking.transfers.dto.TransferRequest;
 import com.corebaking.transfers.repository.TransferRepository;
-import com.corebaking.transfers.service.TransferService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.resttestclient.TestRestTemplate;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -20,12 +24,15 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.*;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureTestRestTemplate
 @Testcontainers
 public class TransferServiceIntegrationTest {
 
@@ -41,10 +48,10 @@ public class TransferServiceIntegrationTest {
     }
 
     @Autowired
-    private AccountRepository accountRepository;
+    private TestRestTemplate restTemplate;
 
     @Autowired
-    private TransferService transferService;
+    private AccountRepository accountRepository;
 
     @Autowired
     private TransferRepository transferRepository;
@@ -55,8 +62,9 @@ public class TransferServiceIntegrationTest {
     @Autowired
     private IdempotencyRepository idempotencyRepository;
 
-    private Account sourceAccount;
-    private Account destAccount;
+    private Account accountA;
+    private Account accountB;
+    private Account accountC;
 
     @BeforeEach
     void setUp() {
@@ -66,81 +74,134 @@ public class TransferServiceIntegrationTest {
         transferRepository.deleteAll();
         accountRepository.deleteAll();
 
-        sourceAccount = new Account("Source acc");
-        sourceAccount.setStatus(StatusAccount.ACTIVE);
-        sourceAccount.setBalance(new BigDecimal("500.00"));
-        sourceAccount =  accountRepository.save(sourceAccount);
+        accountA = new Account("Account A");
+        accountA.setStatus(StatusAccount.ACTIVE);
+        accountA.setBalance(new BigDecimal("100.00"));
+        accountA =  accountRepository.save(accountA);
 
-        destAccount = new Account("Dest acc");
-        destAccount.setStatus(StatusAccount.ACTIVE);
-        destAccount.setBalance(new BigDecimal("100.00"));
-        destAccount =  accountRepository.save(destAccount);
+        accountB = new Account("Account B");
+        accountB.setStatus(StatusAccount.ACTIVE);
+        accountB.setBalance(new BigDecimal("0.00"));
+        accountB =  accountRepository.save(accountB);
+
+        accountC = new Account("Account C");
+        accountC.setStatus(StatusAccount.ACTIVE);
+        accountC.setBalance(new BigDecimal("0.00"));
+        accountC =  accountRepository.save(accountC);
+
     }
 
     @Test
-    void shouldCompleteTransferSuccessfully() {
+    void shouldCompleteOnlyOneTransferWhenBalanceDoesNotCoverBoth() throws Exception {
 
-        var request = new TransferRequest(sourceAccount.getId(), destAccount.getId(), new BigDecimal("200.00"));
-        var idempotencyKey = UUID.randomUUID();
+        var requestB = new TransferRequest(
+                accountA.getId(),
+                accountB.getId(),
+                new BigDecimal("80.00")
+        );
 
-        var response = transferService.transfer(request, idempotencyKey);
+        var  requestC = new TransferRequest(
+                accountA.getId(),
+                accountC.getId(),
+                new BigDecimal("80.00")
+        );
 
-        assertNotNull(response);
-        assertNotNull(response.transferId());
-        assertEquals(new BigDecimal("200.00"), response.amount());
-        assertEquals(sourceAccount.getId(), response.sourceAccountId());
-        assertEquals(destAccount.getId(), response.destinationAccountId());
+        var keyB = UUID.randomUUID();
+        var keyC = UUID.randomUUID();
 
-        Account updateSource = accountRepository.findById(sourceAccount.getId()).get();
-        Account updateDest = accountRepository.findById(destAccount.getId()).get();
-
-        assertEquals(0, new BigDecimal("300.00").compareTo(updateSource.getBalance()));
-        assertEquals(0, new BigDecimal("300.00").compareTo(updateDest.getBalance()));
-    }
-
-    @Test
-    void shouldPreventDoubleSpendingOnConcurrentTransfers() throws Exception {
-        sourceAccount.setBalance(new BigDecimal("100.00"));
-        sourceAccount = accountRepository.save(sourceAccount);
-
-        UUID sourceId = sourceAccount.getId();
-        UUID firstDestinationId = accountRepository.save(new Account("Destino 1")).getId();
-        UUID secondDestinationId = accountRepository.save(new Account("Destino 2")).getId();
-        CountDownLatch ready = new CountDownLatch(2);
-        CountDownLatch start = new CountDownLatch(1);
         ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch ready =  new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
 
         try {
-            Future<Boolean> first = executor.submit(() -> transferAfterStart(sourceId, firstDestinationId, ready, start));
-            Future<Boolean> second = executor.submit(() -> transferAfterStart(sourceId, secondDestinationId, ready, start));
-            assertTrue(ready.await(10, TimeUnit.SECONDS), "As duas tarefas devem estar prontas");
+            Future<ResponseEntity<String>> futureB = executor.submit(() -> {
+
+                ready.countDown();
+                start.await();
+
+                return sendTransfer(requestB, keyB);
+            });
+
+            Future<ResponseEntity<String>> futureC = executor.submit(() -> {
+
+                ready.countDown();
+                start.await();
+
+                return sendTransfer(requestC, keyC);
+            });
+
+            assertTrue(
+                    ready.await(5, TimeUnit.SECONDS),
+                    "The two tasks are ready"
+            );
+
             start.countDown();
 
-            boolean firstSucceeded = first.get(30, TimeUnit.SECONDS);
-            boolean secondSucceeded = second.get(30, TimeUnit.SECONDS);
-            assertNotEquals(firstSucceeded, secondSucceeded, "Apenas uma transferência deve ser concluída");
+            ResponseEntity<String> responseB = futureB.get(10, TimeUnit.SECONDS);
+            ResponseEntity<String> responseC = futureC.get(10, TimeUnit.SECONDS);
 
-            assertEquals(0, BigDecimal.ZERO.compareTo(accountRepository.findById(sourceId).orElseThrow().getBalance()));
-            assertEquals(0, (firstSucceeded ? new BigDecimal("100.00") : BigDecimal.ZERO)
-                    .compareTo(accountRepository.findById(firstDestinationId).orElseThrow().getBalance()));
-            assertEquals(0, (secondSucceeded ? new BigDecimal("100.00") : BigDecimal.ZERO)
-                    .compareTo(accountRepository.findById(secondDestinationId).orElseThrow().getBalance()));
-            assertEquals(1, transferRepository.count());
+            System.out.println("Answer to B: " + responseB);
+            System.out.println("Answer to C: " + responseC);
+
+            List<ResponseEntity<String>> responses = List.of(responseB, responseC);
+
+            long qtdSuccess = responses.stream()
+                    .filter(response -> response.getStatusCode().value() == 200)
+                    .count();
+
+            assertEquals(1, qtdSuccess, "A transfer must return exactly an HTTP status 200");
+
+            Account accA = accountRepository.findById(accountA.getId())
+                    .orElseThrow();
+
+            Account accB = accountRepository.findById(accountB.getId())
+                    .orElseThrow();
+
+            Account accC = accountRepository.findById(accountC.getId())
+                    .orElseThrow();
+
+            System.out.println("Account A: " + accA.getBalance());
+            System.out.println("Account B: " + accB.getBalance());
+            System.out.println("Account C: " + accC.getBalance());
+
+            assertEquals(
+                    0,
+                    accA.getBalance().compareTo(new BigDecimal("20.00")),
+                    "Acc A must end with R$ 20.00"
+            );
+
+            boolean receivedB = accB.getBalance()
+                    .compareTo(new BigDecimal("80.00")) == 0
+                    && accC.getBalance()
+                        .compareTo(new BigDecimal("0.00")) == 0;
+
+            boolean receivedC = accC.getBalance()
+                    .compareTo(new BigDecimal("80.00")) == 0
+                    && accB.getBalance()
+                        .compareTo(new BigDecimal("0.00")) == 0;
+
+            assertTrue(receivedB || receivedC,
+                    "One destination account should receive R$ 80.00, and the other, R$ 0.00");
+
+            assertEquals(
+                    1,
+                    transferRepository.count(),
+                    "There should be only one persisted transfer"
+            );
         } finally {
             start.countDown();
-            executor.shutdownNow();
+            executor.shutdown();
         }
     }
 
-    private boolean transferAfterStart(UUID sourceId, UUID destinationId, CountDownLatch ready, CountDownLatch start)
-            throws InterruptedException {
-        ready.countDown();
-        start.await();
-        try {
-            transferService.transfer(new TransferRequest(sourceId, destinationId, new BigDecimal("100.00")), UUID.randomUUID());
-            return true;
-        } catch (InsufficientBalanceException e) {
-            return false;
-        }
+    private ResponseEntity<String> sendTransfer(TransferRequest request, UUID key) {
+
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Idempotency-key", key.toString());
+
+        HttpEntity<TransferRequest> requestEntity = new HttpEntity<>(request, headers);
+
+        return restTemplate.postForEntity("/api/v1/transfer", requestEntity, String.class);
     }
 }

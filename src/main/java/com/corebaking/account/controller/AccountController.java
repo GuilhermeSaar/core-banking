@@ -1,6 +1,6 @@
 package com.corebaking.account.controller;
 
-import com.corebaking.account.dto.AccountBalance;
+import com.corebaking.account.dto.AccountDTO;
 import com.corebaking.account.dto.AccountRequest;
 import com.corebaking.account.dto.AccountResponse;
 import com.corebaking.account.service.AccountService;
@@ -25,7 +25,7 @@ public class AccountController {
     }
 
     @GetMapping("/accounts/{id}")
-    public ResponseEntity<AccountBalance> findBalance(@PathVariable UUID id){
+    public ResponseEntity<AccountDTO> findBalance(@PathVariable UUID id){
 
         var balance = service.getBalance(id);
         return ResponseEntity.ok().body(balance);

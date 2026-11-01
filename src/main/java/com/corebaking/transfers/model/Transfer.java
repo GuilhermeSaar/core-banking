@@ -40,7 +40,7 @@ public class Transfer {
     @Enumerated(EnumType.STRING)
     private TransferStatus status;
 
-    @OneToMany(mappedBy = "transfer", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "transfer", cascade = CascadeType.ALL)
     private List<Ledger> entries = new ArrayList<>();
 
 

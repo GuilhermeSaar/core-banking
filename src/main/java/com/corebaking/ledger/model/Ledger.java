@@ -31,6 +31,7 @@ public class Ledger {
     private Transfer transfer;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private EntryType entryType;
     @Column(nullable = false, updatable = false)
     private BigDecimal amount;

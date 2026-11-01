@@ -1,6 +1,6 @@
 package com.corebaking.account.service;
 
-import com.corebaking.account.dto.AccountBalance;
+import com.corebaking.account.dto.AccountDTO;
 import com.corebaking.account.dto.AccountRequest;
 import com.corebaking.account.dto.AccountResponse;
 import com.corebaking.account.model.Account;
@@ -37,11 +37,11 @@ public class AccountService {
     //RF02 — Consultar conta e saldo
     //• O sistema deve permitir consultar os dados de uma conta e seu saldo atual.
     @Transactional(readOnly = true)
-    public AccountBalance getBalance(UUID id){
+    public AccountDTO getBalance(UUID id){
 
         var acc = accRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException ("Account not found")
         );
-        return new AccountBalance(acc);
+        return new AccountDTO(acc);
     }
 }

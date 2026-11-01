@@ -80,7 +80,7 @@ public class TransferService {
         var monetaryAmount = new MonetaryAmount(request.amount());
         var transactionAmount = monetaryAmount.amount();
 
-        if (accSource.getBalance().compareTo(monetaryAmount.amount()) < 0) {
+        if (accSource.getBalance().compareTo(transactionAmount) < 0) {
             throw new InsufficientBalanceException("Insufficient balance");
         }
 

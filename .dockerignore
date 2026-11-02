@@ -1,0 +1,14 @@
+.git
+.idea
+.vscode
+.aws
+.agents
+.codex
+.env
+.env.*
+target
+docs
+insomnia
+README.md
+*.iml
+*.log

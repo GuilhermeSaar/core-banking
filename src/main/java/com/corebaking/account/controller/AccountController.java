@@ -32,7 +32,7 @@ public class AccountController {
     @GetMapping("/accounts/{id}")
     public ResponseEntity<AccountDTO> findBalance(@PathVariable UUID id){
 
-        var balance = service.getBalance(id);
+        var balance = service.infoAcc(id);
         return ResponseEntity.ok().body(balance);
     }
 }

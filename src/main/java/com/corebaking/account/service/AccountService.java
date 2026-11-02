@@ -5,6 +5,7 @@ import com.corebaking.account.dto.AccountRequest;
 import com.corebaking.account.dto.AccountResponse;
 import com.corebaking.account.model.Account;
 import com.corebaking.account.repository.AccountRepository;
+import com.corebaking.shared.exception.DuplicateAccountException;
 import com.corebaking.shared.exception.ResourceNotFoundException;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,7 +28,7 @@ public class AccountService {
     @Transactional
     public AccountResponse createAccount(AccountRequest request) {
 
-        if (accRepository.existsByName(request.name())) throw new IllegalArgumentException("Account already exists");
+        if (accRepository.existsByName(request.name())) throw new DuplicateAccountException("Account already exists");
 
         var account = accRepository.save(new Account(request.name()));
 
@@ -37,7 +38,7 @@ public class AccountService {
     //RF02 — Consultar conta e saldo
     //• O sistema deve permitir consultar os dados de uma conta e seu saldo atual.
     @Transactional(readOnly = true)
-    public AccountDTO getBalance(UUID id){
+    public AccountDTO infoAcc(UUID id){
 
         var acc = accRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException ("Account not found")

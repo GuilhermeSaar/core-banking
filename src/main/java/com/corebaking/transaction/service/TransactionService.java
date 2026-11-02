@@ -2,6 +2,7 @@ package com.corebaking.transaction.service;
 
 import com.corebaking.account.repository.AccountRepository;
 import com.corebaking.ledger.model.EntryNature;
+import com.corebaking.shared.exception.*;
 import com.corebaking.transaction.dto.TransactionResponse;
 import com.corebaking.ledger.model.EntryType;
 import com.corebaking.ledger.model.Ledger;
@@ -10,7 +11,6 @@ import com.corebaking.idempotency.model.Idempotency;
 import com.corebaking.idempotency.model.IdempotencyStatus;
 import com.corebaking.shared.vo.MonetaryAmount;
 import com.corebaking.idempotency.repository.IdempotencyRepository;
-import com.corebaking.shared.exception.ResourceNotFoundException;
 import com.corebaking.transfers.model.Transfer;
 import com.corebaking.transfers.model.TransferStatus;
 import com.corebaking.transfers.repository.TransferRepository;
@@ -42,7 +42,7 @@ public class TransactionService {
     @Transactional
     public TransactionResponse deposit(UUID id, BigDecimal amount, UUID idempotencyKey) {
 
-        if (idempotencyKey == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Key cannot be null");
+        if (idempotencyKey == null) throw new InvalidIdempotencyKeyException("Key cannot be null");
 
         var currentHash = GenerateHash.hash(id, amount);
 
@@ -53,7 +53,7 @@ public class TransactionService {
         );
 
         if (acc.isBlocked()) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is blocked");
+            throw new AccountBlockedException("Account is blocked");
         }
 
         Optional<Idempotency> idempotencyOpt = idempotencyRepository.findByIdempotencyKey(idempotencyKey);
@@ -63,7 +63,7 @@ public class TransactionService {
             var idempotency = idempotencyOpt.get();
 
             if (!idempotency.getRequestHash().equals(currentHash)) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Incompatible hashes");
+                throw new IdempotencyConflictException("Incompatible hashes");
             }
 
             var transfer = idempotency.getTransfer();
@@ -104,7 +104,7 @@ public class TransactionService {
     @Transactional
     public TransactionResponse withdraw(UUID id, BigDecimal amount, UUID idempotencyKey) {
 
-        if (idempotencyKey == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Key cannot be null");
+        if (idempotencyKey == null) throw new InvalidIdempotencyKeyException("Key cannot be null");
 
         var currentHash = GenerateHash.hash(id, amount);
 
@@ -113,9 +113,10 @@ public class TransactionService {
         );
 
         MonetaryAmount monetaryAmount = new MonetaryAmount(amount);
+        BigDecimal transferAmount = monetaryAmount.amount();
 
-        if (acc.isBlocked() || acc.getBalance().compareTo(monetaryAmount.amount()) < 0) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is blocked");
+        if (acc.isBlocked()) {
+            throw new AccountBlockedException("Account is blocked");
         }
 
         Optional<Idempotency> idempotencyOpt = idempotencyRepository.findByIdempotencyKey(idempotencyKey);
@@ -125,7 +126,7 @@ public class TransactionService {
             var idempotency = idempotencyOpt.get();
 
             if (!idempotency.getRequestHash().equals(currentHash)) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Incompatible hashes");
+                throw new IdempotencyConflictException("Incompatible hashes");
             }
 
             var transfer = idempotency.getTransfer();
@@ -134,6 +135,10 @@ public class TransactionService {
 
             return new TransactionResponse(transferId, acc.getId(), ledger.getEntryType(),
                     transfer.getAmount(), transfer.getStatus(), transfer.getCreatedAt());
+        }
+
+        if (acc.getBalance().compareTo(transferAmount) < 0) {
+            throw new FinancialRuleException("Insufficient balance");
         }
 
         var entryType = EntryType.WITHDRAWAL;
@@ -155,5 +160,4 @@ public class TransactionService {
                 monetaryAmount.amount(), status, transfer.getCreatedAt()
         );
     }
-
 }

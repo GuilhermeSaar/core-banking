@@ -61,5 +61,4 @@ public class GenerateHash {
 
         return hexString.toString();
     }
-
 }

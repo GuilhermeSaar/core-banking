@@ -1,22 +1,21 @@
 package com.corebaking.transfers.service;
 
+import com.corebaking.account.repository.AccountRepository;
+import com.corebaking.idempotency.model.Idempotency;
+import com.corebaking.idempotency.model.IdempotencyStatus;
+import com.corebaking.idempotency.repository.IdempotencyRepository;
 import com.corebaking.ledger.model.EntryNature;
+import com.corebaking.ledger.model.EntryType;
+import com.corebaking.ledger.model.Ledger;
+import com.corebaking.ledger.repository.LedgerRepository;
+import com.corebaking.shared.exception.*;
+import com.corebaking.shared.utils.GenerateHash;
+import com.corebaking.shared.vo.MonetaryAmount;
 import com.corebaking.transfers.dto.TransferRequest;
 import com.corebaking.transfers.dto.TransferResponse;
-import com.corebaking.shared.exception.InsufficientBalanceException;
-import com.corebaking.shared.exception.ResourceNotFoundException;
-import com.corebaking.idempotency.model.Idempotency;
-import com.corebaking.ledger.model.Ledger;
 import com.corebaking.transfers.model.Transfer;
-import com.corebaking.ledger.model.EntryType;
-import com.corebaking.idempotency.model.IdempotencyStatus;
 import com.corebaking.transfers.model.TransferStatus;
-import com.corebaking.shared.vo.MonetaryAmount;
-import com.corebaking.account.repository.AccountRepository;
-import com.corebaking.idempotency.repository.IdempotencyRepository;
-import com.corebaking.ledger.repository.LedgerRepository;
 import com.corebaking.transfers.repository.TransferRepository;
-import com.corebaking.shared.utils.GenerateHash;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -45,7 +44,7 @@ public class TransferService {
     @Transactional
     public TransferResponse transfer(TransferRequest request, UUID idempotencyKey) {
 
-        if (idempotencyKey == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Key cannot be null");
+        if (idempotencyKey == null) throw new InvalidIdempotencyKeyException( "Key cannot be null");
 
         var currentHash = GenerateHash.hash(request.sourceAccountId(), request.destinationAccountId(), request.amount());
 
@@ -56,10 +55,10 @@ public class TransferService {
                 () -> new ResourceNotFoundException("account not found")
         );
 
-        if (accSource.isBlocked() || accDest.isBlocked()) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Transfer is blocked");
+        if (accSource.isBlocked() || accDest.isBlocked()) throw new DuplicateAccountException("Transfer is blocked");
 
         if (accSource.equals(accDest)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "It is not possible to complete the transaction");
+            throw new IdempotencyConflictException("It is not possible to complete the transaction");
         }
 
         var idempOpt = idempotencyRepository.findByIdempotencyKey(idempotencyKey);
@@ -68,7 +67,7 @@ public class TransferService {
             var idempotency = idempOpt.get();
 
             if  (!idempotency.getRequestHash().equals(currentHash)) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Incompatible hashes");
+                throw new IdempotencyConflictException("Incompatible hashes");
             }
 
             var transfer = idempotency.getTransfer();
@@ -82,7 +81,7 @@ public class TransferService {
         var transactionAmount = monetaryAmount.amount();
 
         if (accSource.getBalance().compareTo(transactionAmount) < 0) {
-            throw new InsufficientBalanceException("Insufficient balance");
+            throw new FinancialRuleException("Insufficient balance");
         }
 
         var balanceSource = accSource.getBalance().subtract(transactionAmount);

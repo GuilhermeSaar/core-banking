@@ -2,7 +2,7 @@ CREATE TABLE accounts (
     id UUID PRIMARY KEY,
     name VARCHAR(255) UNIQUE,
     status SMALLINT,
-    balance NUMERIC(38, 2) NOT NULL,
+    balance NUMERIC(18, 2) NOT NULL,
     created_at TIMESTAMP(6) NOT NULL
 );
 
@@ -10,7 +10,7 @@ CREATE TABLE transfers (
     id UUID PRIMARY KEY,
     source_account_id UUID REFERENCES accounts(id),
     destination_account_id UUID REFERENCES accounts(id),
-    amount NUMERIC(38, 2) NOT NULL,
+    amount NUMERIC(18, 2) NOT NULL,
     status VARCHAR(255),
     created_at TIMESTAMP(6) NOT NULL
 );
@@ -21,7 +21,7 @@ CREATE TABLE ledger_entries (
     transfer_id UUID REFERENCES transfers(id),
     entry_type VARCHAR(255) NOT NULL,
     nature SMALLINT,
-    amount NUMERIC(38, 2) NOT NULL,
+    amount NUMERIC(18, 2) NOT NULL,
     created_at TIMESTAMP(6) NOT NULL
 );
 

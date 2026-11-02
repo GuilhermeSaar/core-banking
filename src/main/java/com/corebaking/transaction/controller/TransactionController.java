@@ -6,6 +6,7 @@ import com.corebaking.transaction.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.Parameter;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +27,7 @@ public class TransactionController {
             @Parameter(description = "UUID único da operação. Reutilize a chave com os mesmos dados para repetição idempotente.",
                     required = true, example = "33333333-3333-4333-8333-333333333333")
             @RequestHeader(value = "Idempotency-Key", required = false) UUID key,
-            @PathVariable UUID id, @RequestBody TransactionRequest amount){
+            @PathVariable UUID id, @RequestBody @Valid TransactionRequest amount){
 
         System.out.print("Idempotency-Key: " + key + "\n");
 

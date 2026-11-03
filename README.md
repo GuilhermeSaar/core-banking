@@ -138,35 +138,45 @@ O `GlobalExceptionHandler`, implementado com `@RestControllerAdvice`, centraliza
 
 ## Testes
 
-A classe [`TransferServiceIntegrationTest`](src/test/java/com/corebaking/service/TransferServiceIntegrationTest.java) inicia a API em uma porta aleatória e usa **PostgreSQL 16 real em um container isolado**, gerenciado pelo Testcontainers.
+Os testes unitários ficam em `src/test/java`, seguem o pacote do código testado e usam o sufixo `Test`. Os testes de integração ficam no pacote `com.corebaking.integration` e usam o sufixo `IT`. O Maven Surefire executa os unitários com `test`; o Maven Failsafe executa os testes de integração com `verify`.
+
+O teste [`TransferServiceIT`](src/test/java/com/corebaking/integration/service/TransferServiceIT.java) inicia a API em uma porta aleatória e usa **PostgreSQL 16 real em um container isolado**, gerenciado pelo Testcontainers.
 
 | Cenário automatizado | O que o teste verifica |
 | --- | --- |
 | Disputa pelo mesmo saldo | Duas requisições HTTP de R$ 80,00 partem simultaneamente de uma conta com R$ 100,00. O teste verifica um único HTTP `200`, saldo final de R$ 20,00 na origem, crédito em apenas um destino e uma única operação persistida. |
+| Chave entre depósito e saque | Reutilizar a chave do depósito de R$ 100,00 no saque de R$ 100,00 da mesma conta deve retornar HTTP `409`, mantendo apenas o depósito e seu lançamento. |
 | Proteção do histórico | Tentativas de `UPDATE` e `DELETE` em `transfers` e `ledger_entries` são rejeitadas pelo banco e os registros permanecem com os valores originais. |
 | Documentação da API | OpenAPI expõe as seis rotas e documenta o header de idempotência como obrigatório; o Swagger UI responde com HTTP `200`. |
+| Carregamento do contexto | `CoreBakingApplicationIT` verifica a inicialização do contexto Spring com a configuração da aplicação. |
 
-Para executar os testes pelo Maven Wrapper, tenha JDK 21 e Docker ativo:
+Para executar somente os testes unitários pelo Maven Wrapper:
 
 ```bash
-./mvnw -Dtest=TransferServiceIntegrationTest test
+./mvnw -Dtest=TransferServiceTest test
+```
+
+Para executar somente a integração de transferências, tenha JDK 21 e Docker ativo:
+
+```bash
+./mvnw -Dit.test=TransferServiceIT verify
 ```
 
 No Windows, use `.\mvnw.cmd` no lugar de `./mvnw`.
 
 <details>
-<summary>Executar a suíte completa, incluindo o carregamento do contexto</summary>
+<summary>Executar a suíte completa, incluindo integração e carregamento do contexto</summary>
 
-O teste `CoreBakingApplicationTests.contextLoads` utiliza a configuração padrão da aplicação e precisa de um datasource. Para executar a suíte completa com o banco local, em Bash:
+O teste `CoreBakingApplicationIT.contextLoads` utiliza a configuração padrão da aplicação e precisa de um datasource. Para executar a suíte completa, incluindo os testes Testcontainers, tenha Docker ativo e configure o banco local. Em Bash:
 
 ```bash
 docker compose up -d postgres
 SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/mydatabase \
 SPRING_DATASOURCE_USERNAME=postgres \
-./mvnw test
+./mvnw verify
 ```
 
-O Compose configura o banco `mydatabase`, usuário `postgres` e autenticação sem senha para desenvolvimento local. Os testes de integração continuam usando a conexão de seu próprio container, definida por `@DynamicPropertySource`.
+O Compose configura o banco `mydatabase`, usuário `postgres` e autenticação sem senha para desenvolvimento local. `TransferServiceIT` usa a conexão de seu próprio container, definida por `@DynamicPropertySource`.
 
 </details>
 

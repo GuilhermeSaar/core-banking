@@ -42,9 +42,11 @@ public class TransactionService {
     @Transactional
     public TransactionResponse deposit(UUID id, BigDecimal amount, UUID idempotencyKey) {
 
+        var entryType = EntryType.DEPOSIT;
+
         if (idempotencyKey == null) throw new InvalidIdempotencyKeyException("Key cannot be null");
 
-        var currentHash = GenerateHash.hash(id, amount);
+        var currentHash = GenerateHash.hash(id, entryType, amount);
 
         MonetaryAmount monetaryAmount = new MonetaryAmount(amount);
 
@@ -74,8 +76,6 @@ public class TransactionService {
                     transfer.getAmount(), transfer.getStatus(), transfer.getCreatedAt());
 
         }
-
-        var entryType = EntryType.DEPOSIT;
 
         var balance =  acc.getBalance().add(monetaryAmount.amount());
         acc.setBalance(balance);
@@ -104,16 +104,17 @@ public class TransactionService {
     @Transactional
     public TransactionResponse withdraw(UUID id, BigDecimal amount, UUID idempotencyKey) {
 
+        MonetaryAmount monetaryAmount = new MonetaryAmount(amount);
+        BigDecimal transferAmount = monetaryAmount.amount();
+
         if (idempotencyKey == null) throw new InvalidIdempotencyKeyException("Key cannot be null");
 
-        var currentHash = GenerateHash.hash(id, amount);
+        var entryType = EntryType.WITHDRAWAL;
+        var currentHash = GenerateHash.hash(id, entryType, amount);
 
         var acc = accRepository.findByIdWithLock(id).orElseThrow(
                 () -> new ResourceNotFoundException("account not found")
         );
-
-        MonetaryAmount monetaryAmount = new MonetaryAmount(amount);
-        BigDecimal transferAmount = monetaryAmount.amount();
 
         if (acc.isBlocked()) {
             throw new AccountBlockedException("Account is blocked");
@@ -141,7 +142,6 @@ public class TransactionService {
             throw new FinancialRuleException("Insufficient balance");
         }
 
-        var entryType = EntryType.WITHDRAWAL;
         var balance = acc.getBalance().subtract(monetaryAmount.amount());
         acc.setBalance(balance);
 

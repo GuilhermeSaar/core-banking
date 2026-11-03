@@ -1,9 +1,10 @@
-package com.corebaking.service;
+package com.corebaking.integration.service;
 
 import com.jayway.jsonpath.JsonPath;
 import com.corebaking.account.model.Account;
 import com.corebaking.account.model.StatusAccount;
 import com.corebaking.account.repository.AccountRepository;
+import com.corebaking.transaction.dto.TransactionRequest;
 import com.corebaking.transfers.dto.TransferRequest;
 import com.corebaking.transfers.repository.TransferRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureTestRestTemplate
 @Testcontainers
-public class TransferServiceIntegrationTest {
+public class TransferServiceIT {
 
     @Container
     static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres:16");
@@ -66,7 +67,7 @@ public class TransferServiceIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // The test database is disposable; row-level protections forbid DELETE.
+
         jdbcTemplate.execute("TRUNCATE idempotency_records, ledger_entries, transfers, accounts");
 
         accountA = new Account("Account A");
@@ -84,6 +85,38 @@ public class TransferServiceIntegrationTest {
         accountC.setBalance(new BigDecimal("0.00"));
         accountC =  accountRepository.save(accountC);
 
+    }
+
+    @Test
+    void shouldRejectReusingDepositIdempotencyKeyForWithdrawal() {
+        Account account = new Account("Idempotency test account");
+        account.setStatus(StatusAccount.ACTIVE);
+        account.setBalance(BigDecimal.ZERO);
+        account = accountRepository.save(account);
+
+        UUID idempotencyKey = UUID.randomUUID();
+        BigDecimal amount = new BigDecimal("100.00");
+
+        ResponseEntity<String> depositResponse = sendTransaction(
+                account.getId(), "deposits", amount, idempotencyKey);
+        assertEquals(200, depositResponse.getStatusCode().value(),
+                "The initial deposit should succeed");
+
+        ResponseEntity<String> withdrawalResponse = sendTransaction(
+                account.getId(), "withdraw", amount, idempotencyKey);
+
+        assertEquals(409, withdrawalResponse.getStatusCode().value(),
+                "Reusing a deposit key for a withdrawal should be rejected");
+
+        Account persistedAccount = accountRepository.findById(account.getId()).orElseThrow();
+        assertEquals(0, persistedAccount.getBalance().compareTo(amount),
+                "The rejected withdrawal must not change the deposited balance");
+        assertEquals(1, transferRepository.count(),
+                "Only the original deposit should be persisted");
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM ledger_entries WHERE account_id = ?",
+                Integer.class, account.getId()),
+                "Only the deposit ledger entry should be persisted");
     }
 
     @Test
@@ -245,5 +278,18 @@ public class TransferServiceIntegrationTest {
         HttpEntity<TransferRequest> requestEntity = new HttpEntity<>(request, headers);
 
         return restTemplate.postForEntity("/api/v1/transfer", requestEntity, String.class);
+    }
+
+    private ResponseEntity<String> sendTransaction(UUID accountId, String operation,
+                                                   BigDecimal amount, UUID key) {
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Idempotency-Key", key.toString());
+
+        HttpEntity<TransactionRequest> requestEntity = new HttpEntity<>(
+                new TransactionRequest(amount), headers);
+
+        return restTemplate.postForEntity(
+                "/api/v1/transaction/{id}/" + operation, requestEntity, String.class, accountId);
     }
 }

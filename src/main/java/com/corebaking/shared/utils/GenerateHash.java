@@ -1,28 +1,28 @@
 package com.corebaking.shared.utils;
 
+import com.corebaking.ledger.model.EntryType;
 import lombok.AllArgsConstructor;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
 @AllArgsConstructor
 public class GenerateHash {
 
-
     private final static ObjectMapper mapper = new ObjectMapper();
 
-    public static String hash(UUID id, BigDecimal amount) {
+    public static String hash(UUID id, EntryType entry, BigDecimal amount) {
         try {
-            var amountNormalized = amount.stripTrailingZeros();
 
-            Map<String, Object> payload = Map.of(
-                    "id", id.toString(),
-                    "amount", amountNormalized
-            );
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("id", id.toString());
+            payload.put("entry", entry.name());
+            payload.put("amount", amount.stripTrailingZeros());
 
             return generateSha256(mapper.writeValueAsString(payload));
         } catch (Exception e) {
@@ -32,13 +32,11 @@ public class GenerateHash {
 
     public static String hash(UUID idSource, UUID idDest, BigDecimal amount) {
         try {
-            var amountNormalized = amount.stripTrailingZeros();
 
-            Map<String, Object> payload = Map.of(
-                    "id1", idSource.toString(),
-                    "id2", idDest.toString(),
-                    "amount", amountNormalized
-            );
+            Map<String, Object> payload = new LinkedHashMap<>();
+            payload.put("idSource", idSource.toString());
+            payload.put("idDest", idDest.toString());
+            payload.put("amount", amount.stripTrailingZeros());
 
             return generateSha256(mapper.writeValueAsString(payload));
         } catch (Exception e) {

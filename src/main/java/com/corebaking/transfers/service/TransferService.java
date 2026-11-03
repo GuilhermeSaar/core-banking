@@ -44,9 +44,13 @@ public class TransferService {
     @Transactional
     public TransferResponse transfer(TransferRequest request, UUID idempotencyKey) {
 
+        var monetaryAmount = new MonetaryAmount(request.amount());
+        var transactionAmount = monetaryAmount.amount();
+
         if (idempotencyKey == null) throw new InvalidIdempotencyKeyException( "Key cannot be null");
 
         var currentHash = GenerateHash.hash(request.sourceAccountId(), request.destinationAccountId(), request.amount());
+        var idempotencyOpt = idempotencyRepository.findByIdempotencyKey(idempotencyKey);
 
         var accSource = accRepository.findByIdWithLock(request.sourceAccountId()).orElseThrow(
                 () -> new ResourceNotFoundException("account not found")
@@ -61,10 +65,8 @@ public class TransferService {
             throw new IdempotencyConflictException("It is not possible to complete the transaction");
         }
 
-        var idempOpt = idempotencyRepository.findByIdempotencyKey(idempotencyKey);
-
-        if (idempOpt.isPresent()) {
-            var idempotency = idempOpt.get();
+        if (idempotencyOpt.isPresent()) {
+            var idempotency = idempotencyOpt.get();
 
             if  (!idempotency.getRequestHash().equals(currentHash)) {
                 throw new IdempotencyConflictException("Incompatible hashes");
@@ -76,9 +78,6 @@ public class TransferService {
             return new TransferResponse(transferId, transfer.getStatus(),
                     transfer.getAmount(), accSource.getId(), accDest.getId());
         }
-
-        var monetaryAmount = new MonetaryAmount(request.amount());
-        var transactionAmount = monetaryAmount.amount();
 
         if (accSource.getBalance().compareTo(transactionAmount) < 0) {
             throw new FinancialRuleException("Insufficient balance");

@@ -1,10 +1,10 @@
-package com.corebaking;
+package com.corebaking.integration;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class CoreBakingApplicationTests {
+class CoreBakingApplicationIT {
 
     @Test
     void contextLoads() {
